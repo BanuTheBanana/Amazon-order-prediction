@@ -65,12 +65,4 @@ if st.button("Predict Cancellation Probability", type="primary"):
     except Exception as e:
         st.error(f"Error making prediction: {e}")
 
-from importlib.metadata import version
-print(version('requests'))
-
-from importlib.metadata import version
-
-print(f"Streamlit version: {version('streamlit')}")
-print(f"Pandas version: {version('pandas')}")
-print(f"Joblib version: {version('joblib')}")
 
