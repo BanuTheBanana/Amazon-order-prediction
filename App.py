@@ -115,7 +115,8 @@ with tab3:
             st.markdown(message["content"])
 
     # 5. Handle new user input
-    if prompt == st.chat_input("Ask about the model or data..."):
+    prompt = st.chat_input("Ask about the model or data...")
+    if prompt:
         
         # Display the user's message immediately
         with st.chat_message("user"):
