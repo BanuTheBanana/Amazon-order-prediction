@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import joblib
-
+import google.generativeai as genai # Add this line!
 # Set up the page layout
 st.set_page_config(page_title="Order Cancellation Analysis", layout="centered")
 
@@ -73,9 +73,65 @@ with tab2:
 # ==========================================
 # TAB 3: PROJECT CHATBOT
 # ==========================================
+# ==========================================
+# TAB 3: PROJECT CHATBOT
+# ==========================================
 with tab3:
-    st.header("Project Assistant")
+    st.header("💬 Project Assistant")
     st.write("Ask me anything about the data preparation, model training, or insights from this project!")
     
-    # Placeholder for the chat interface
-    st.chat_message("assistant").write("Hello! I am the AI assistant for this project. How can I help you?")
+    # 1. Securely configure the Gemini API key
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    
+    # 2. Define the bot's persona and rules
+    project_rules = """
+    You are an AI assistant for a data science project created by a second-year Artificial Intelligence student at FPT University. 
+    The project predicts e-commerce order cancellation probabilities using a Random Forest model. 
+    The dataset features include order amount, customer tenure, discount application, shipping method, payment type, and item count.
+    
+    Your rules:
+    - Answer questions strictly related to this e-commerce data, Random Forest models, data cleaning (like One-Hot Encoding), and Exploratory Data Analysis.
+    - If a user asks about unrelated topics (e.g., coding help, general history, weather), politely decline and state that you can only answer questions about the order cancellation project.
+    - Keep answers concise, professional, and educational.
+    - For now the content of the project is empty, so you can only tell them to wait for more information to be added.
+    """
+    
+    # Initialize the model with the system instructions
+    model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=project_rules)
+    
+    # 3. Initialize chat memory in Streamlit's session state
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+        
+        # Add a friendly greeting from the bot
+        st.session_state.messages.append({
+            "role": "assistant", 
+            "content": "Hello! I am the AI assistant for this e-commerce prediction project. What would you like to know about this project?"
+        })
+
+    # 4. Display the chat history on the screen
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # 5. Handle new user input
+    if prompt == st.chat_input("Ask about the model or data..."):
+        
+        # Display the user's message immediately
+        with st.chat_message("user"):
+            st.markdown(prompt)
+            
+        # Add user message to memory
+        st.session_state.messages.append({"role": "user", "content": prompt})
+
+        # Generate the bot's response
+        with st.chat_message("assistant"):
+            # We need to pass the previous messages to Gemini so it has context
+            # We convert Streamlit's dictionary format into a string format Gemini easily reads
+            chat_history = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages])
+            
+            response = model.generate_content(chat_history)
+            st.markdown(response.text)
+            
+        # Add bot's response to memory
+        st.session_state.messages.append({"role": "assistant", "content": response.text})
