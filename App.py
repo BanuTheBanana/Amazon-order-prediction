@@ -97,7 +97,7 @@ with tab3:
     """
     
     # Initialize the model with the system instructions
-    model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=project_rules)
+    model = genai.GenerativeModel('models/gemini-1.5-flash', system_instruction=project_rules)
     
     # 3. Initialize chat memory in Streamlit's session state
     if "messages" not in st.session_state:
