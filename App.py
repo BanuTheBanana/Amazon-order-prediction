@@ -14,44 +14,62 @@ tab1, tab2, tab3 = st.tabs(["🤖 Prediction Machine", "📊 Data Exploration", 
 # TAB 1: THE PREDICTION MACHINE
 # ==========================================
 with tab1:
-    st.write("Adjust the features below to predict the probability that an order will be cancelled.")
+    st.write("Adjust the features below to predict the probability of a successful delivery.")
     st.divider()
 
     st.header("Order Features")
     col1, col2 = st.columns(2)
 
     with col1:
-        order_amount = st.number_input("Order Amount ($)", min_value=0.0, value=120.50)
-        customer_tenure = st.number_input("Customer Tenure (Days)", min_value=0, value=45)
-        discount_applied = st.checkbox("Discount Applied?")
+        # Number inputs for standard metrics
+        quantity = st.number_input("Quantity", min_value=1, value=1)
+        price = st.number_input("Price (INR)", min_value=0.0, value=850.0)
+        
+        # Checkbox for binary (True/False)
+        is_business = st.checkbox("Is Business Buyer?")
+        
+        # The UI shows text, but the model needs an integer (0-10)
+        size_list = ['Free', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL']
+        size_label = st.select_slider("Garment Size", options=size_list, value='M')
+        # Translate the text back into the 0-10 index number for the model
+        size_encoded = size_list.index(size_label) 
 
     with col2:
-        shipping_method = st.selectbox("Shipping Method", ["Standard", "Express", "Next-Day"])
-        payment_type = st.selectbox("Payment Type", ["Credit Card", "E-Wallet", "Bank Transfer"])
-        items_in_cart = st.slider("Number of Items", min_value=1, max_value=20, value=3)
+        # Assuming 0 and 1 represent things like 'Standard' and 'Express'
+        shipping_type = st.selectbox("Shipping Type (Binary)", [0, 1])
+        fulfilment_int = st.selectbox("Fulfilment Channel (Binary)", [0, 1])
+        
+        # Promotion count
+        promotion_int = st.number_input("Promotions Applied (Count)", min_value=0, value=0)
 
-    input_data = pd.DataFrame({
-        'order_amount': [order_amount],
-        'customer_tenure': [customer_tenure],
-        'discount_applied': [1 if discount_applied else 0],
-        'shipping_method': [shipping_method],
-        'payment_type': [payment_type],
-        'items_in_cart': [items_in_cart]
+    # THE TRANSLATION LAYER: Exactly matching the 7 features from the image
+    final_input = pd.DataFrame({
+        'Quantity': [quantity],
+        'Price': [price],
+        'Is Business': [1 if is_business else 0], # Converts True/False to 1/0
+        'Size': [size_encoded],
+        'Shipping_Type': [shipping_type],
+        'Promotion_int': [promotion_int],
+        'Fulfilment_Int': [fulfilment_int]
     })
 
     st.divider()
 
-    if st.button("Predict Cancellation Probability", type="primary"):
+    if st.button("Predict Success Probability", type="primary"):
         try:
-            probability = 0.28 # Dummy value for testing the UI
+            # Load the winning LightGBM model
+            model = joblib.load("LG_model.joblib")
+            
+            # Predict the probability of success (Index 1)
+            probability = model.predict_proba(final_input)[0][1] 
             
             st.header("Results")
-            st.metric(label="Cancellation Probability", value=f"{probability * 100:.1f}%")
+            st.metric(label="Likelihood of Successful Delivery", value=f"{probability * 100:.1f}%")
 
-            if probability > 0.5:
-                st.error("🚨 High Risk: This order is likely to be cancelled.")
+            if probability >= 0.5:
+                st.success("✅ High Confidence: This order is likely to be successfully fulfilled.")
             else:
-                st.success("✅ Low Risk: This order is likely to be completed.")
+                st.error("🚨 Low Confidence: This order is at high risk of cancellation.")
 
         except Exception as e:
             st.error(f"Error making prediction: {e}")
