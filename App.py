@@ -3,6 +3,7 @@ import pandas as pd
 import joblib
 import shap
 import matplotlib.pyplot as plt
+import google.generativeai as genai
 
 # Set up the page layout
 st.set_page_config(page_title="Order Cancellation Analysis", layout="centered")
