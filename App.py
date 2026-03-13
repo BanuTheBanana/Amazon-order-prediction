@@ -60,6 +60,9 @@ with tab1:
             # Load the winning LightGBM model
             model = joblib.load("LG_model.joblib")
             
+            # --- ADD THIS TEMPORARY DEBUG LINE ---
+            st.error(f"The model is expecting exactly these 6 features: {model.feature_name_}")
+            
             # Predict the probability of success (Index 1)
             probability = model.predict_proba(final_input)[0][1] 
             
