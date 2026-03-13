@@ -21,47 +21,43 @@ with tab1:
     col1, col2 = st.columns(2)
 
     with col1:
-        # Number inputs for standard metrics
+        # Maps to 'Qty' and 'Amount'
         quantity = st.number_input("Quantity", min_value=1, value=1)
-        price = st.number_input("Price (INR)", min_value=0.0, value=850.0)
+        price = st.number_input("Amount (INR)", min_value=0.0, value=850.0)
         
-        # Checkbox for binary (True/False)
-        is_business = st.checkbox("Is Business Buyer?")
-        
-        # The UI shows text, but the model needs an integer (0-10)
+        # Maps to 'Size_Int'
         size_list = ['Free', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL']
         size_label = st.select_slider("Garment Size", options=size_list, value='M')
-        # Translate the text back into the 0-10 index number for the model
         size_encoded = size_list.index(size_label) 
 
     with col2:
-        # Assuming 0 and 1 represent things like 'Standard' and 'Express'
-        shipping_type = st.selectbox("Shipping Type (Binary)", [0, 1])
-        fulfilment_int = st.selectbox("Fulfilment Channel (Binary)", [0, 1])
+        # Maps to 'B2B'
+        is_business = st.checkbox("Is Business Buyer (B2B)?")
         
-        # Promotion count
-        promotion_int = st.number_input("Promotions Applied (Count)", min_value=0, value=0)
+        # Maps to 'Promotion_Count'
+        promotion_count = st.number_input("Promotions Applied (Count)", min_value=0, value=0)
+        
+        # Maps to 'Service_Level_Int'
+        # Using a selectbox assuming it's a small integer category (like 0=Standard, 1=Expedited)
+        service_level = st.selectbox("Service Level", [0, 1, 2]) 
 
-    # THE TRANSLATION LAYER: Exactly matching the 7 features from the image
+    # THE TRANSLATION LAYER: 
+    # The dictionary keys below MUST perfectly match the 6 features the old model expects
     final_input = pd.DataFrame({
-        'Quantity': [quantity],
-        'Price': [price],
-        'Is Business': [1 if is_business else 0], # Converts True/False to 1/0
-        'Size': [size_encoded],
-        'Shipping_Type': [shipping_type],
-        'Promotion_int': [promotion_int],
-        'Fulfilment_Int': [fulfilment_int]
+        'Qty': [quantity],
+        'Amount': [price],
+        'Size_Int': [size_encoded],
+        'Service_Level_Int': [service_level],
+        'Promotion_Count': [promotion_count],
+        'B2B': [1 if is_business else 0]
     })
 
     st.divider()
 
     if st.button("Predict Success Probability", type="primary"):
         try:
-            # Load the winning LightGBM model
+            # Load the current LightGBM model
             model = joblib.load("LG_model.joblib")
-            
-            # --- ADD THIS TEMPORARY DEBUG LINE ---
-            st.error(f"The model is expecting exactly these 6 features: {model.feature_name_}")
             
             # Predict the probability of success (Index 1)
             probability = model.predict_proba(final_input)[0][1] 
@@ -76,7 +72,6 @@ with tab1:
 
         except Exception as e:
             st.error(f"Error making prediction: {e}")
-
 # ==========================================
 # TAB 2: DATA EXPLORATION (EDA)
 # ==========================================
