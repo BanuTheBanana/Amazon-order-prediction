@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 import joblib
-import google.generativeai as genai # Add this line!
+import shap
+import matplotlib.pyplot as plt
+
 # Set up the page layout
 st.set_page_config(page_title="Order Cancellation Analysis", layout="centered")
 
@@ -21,28 +23,19 @@ with tab1:
     col1, col2 = st.columns(2)
 
     with col1:
-        # Maps to 'Qty' and 'Amount'
         quantity = st.number_input("Quantity", min_value=1, value=1)
         price = st.number_input("Amount (INR)", min_value=0.0, value=850.0)
         
-        # Maps to 'Size_Int'
         size_list = ['Free', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL']
         size_label = st.select_slider("Garment Size", options=size_list, value='M')
         size_encoded = size_list.index(size_label) 
 
     with col2:
-        # Maps to 'B2B'
         is_business = st.checkbox("Is Business Buyer (B2B)?")
-        
-        # Maps to 'Promotion_Count'
         promotion_count = st.number_input("Promotions Applied (Count)", min_value=0, value=0)
-        
-        # Maps to 'Service_Level_Int'
-        # Using a selectbox assuming it's a small integer category (like 0=Standard, 1=Expedited)
         service_level = st.selectbox("Service Level", [0, 1, 2]) 
 
-    # THE TRANSLATION LAYER: 
-    # The dictionary keys below MUST perfectly match the 6 features the old model expects
+    # THE TRANSLATION LAYER
     final_input = pd.DataFrame({
         'Qty': [quantity],
         'Amount': [price],
@@ -56,12 +49,11 @@ with tab1:
 
     if st.button("Predict Success Probability", type="primary"):
         try:
-            # Load the current LightGBM model
+            # 1. Load the model and make the prediction
             model = joblib.load("LG_model.joblib")
-            
-            # Predict the probability of success (Index 1)
             probability = model.predict_proba(final_input)[0][1] 
             
+            # 2. Display the top-line result
             st.header("Results")
             st.metric(label="Likelihood of Successful Delivery", value=f"{probability * 100:.1f}%")
 
@@ -70,8 +62,29 @@ with tab1:
             else:
                 st.error("🚨 Low Confidence: This order is at high risk of cancellation.")
 
+            # --- 3. EXPLAINABLE AI (SHAP) SECTION ---
+            st.divider()
+            st.subheader("🧠 Model Explanation")
+            st.write("This waterfall chart shows exactly how each feature pushed the model's decision higher (red) or lower (blue) from the baseline.")
+            
+            # Create the SHAP Explainer
+            explainer = shap.TreeExplainer(model)
+            
+            # Calculate SHAP values for our specific UI input
+            shap_values = explainer(final_input)
+            
+            # Create the plot
+            fig, ax = plt.subplots(figsize=(8, 4))
+            # Plot the explanation for the single prediction (index 0)
+            shap.plots.waterfall(shap_values[0], show=False)
+            
+            # Render the plot in Streamlit
+            st.pyplot(fig)
+
         except Exception as e:
-            st.error(f"Error making prediction: {e}")
+            st.error(f"Error making prediction or generating explanation: {e}")
+
+# ... (Keep your Tab 2 and Tab 3 code exactly the same below this) ...
 # ==========================================
 # TAB 2: DATA EXPLORATION (EDA)
 # ==========================================
