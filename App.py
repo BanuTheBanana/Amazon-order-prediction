@@ -77,7 +77,7 @@ with tab1:
             # Create the plot
             fig, ax = plt.subplots(figsize=(8, 4))
             # Plot the explanation for the single prediction (index 0)
-            shap.plots.waterfall(shap_values[0], show=False)
+            shap.plots.waterfall(shap_values[0, :, 1], show=False)
             
             # Render the plot in Streamlit
             st.pyplot(fig)
